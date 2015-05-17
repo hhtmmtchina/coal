@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:util="http://www.springframework.org/schema/util"
+	xmlns:jee="http://www.springframework.org/schema/jee" xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:tx="http://www.springframework.org/schema/tx" xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:p="http://www.springframework.org/schema/p" xmlns:cache="http://www.springframework.org/schema/cache"  
+	
+	xsi:schemaLocation="
+    http://www.springframework.org/schema/beans
+    http://www.springframework.org/schema/beans/spring-beans-3.2.xsd
+    http://www.springframework.org/schema/aop 
+    http://www.springframework.org/schema/aop/spring-aop-3.2.xsd
+    http://www.springframework.org/schema/tx
+    http://www.springframework.org/schema/tx/spring-tx-3.2.xsd
+    http://www.springframework.org/schema/jee
+    http://www.springframework.org/schema/jee/spring-jee-3.2.xsd
+    http://www.springframework.org/schema/context
+    http://www.springframework.org/schema/context/spring-context-3.2.xsd
+    http://www.springframework.org/schema/util 
+    http://www.springframework.org/schema/util/spring-util-3.2.xsd
+    http://www.springframework.org/schema/cache http://www.springframework.org/schema/cache/spring-cache-3.2.xsd">
+
+	 <bean class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+       <property name="locations">
+			<list>
+				<value>classpath:db.properties</value>				
+			</list>
+		</property>
+	</bean>		
+	
+	<!-- 配置主库数据源 -->
+	<bean id="mainDataSource" class="com.alibaba.druid.pool.DruidDataSource" init-method="init" destroy-method="close">
+	    <property name="driverClassName" value="${driverClassName}"/>
+	    <property name="url" value="${url}"/>
+	    <property name="username" value="${userName}"/>
+	    <property name="password" value="${password}"/>
+	    <!--initialSize: 初始化连接-->  
+		<property name="initialSize" value="10"/>  
+		<!--minIdle: 最小空闲连接-->  
+		<property name="minIdle" value="5"/>  
+		<!--maxActive: 最大连接数量-->  
+		<property name="maxActive" value="20"/>
+		<!--最大连接等待时间(ms)-->
+		<property name="maxWait" value="1000"/>  
+		<!--默认从连接池取连接时检测其可用性，放回连接池时不做监测，-->
+		<property name="validationQuery" value="SELECT 1" /> 
+        <!-- 配置监控统计拦截的filters -->
+        <property name="filters" value="stat" /> 
+    </bean>
+    
+    <!-- 配置从数据源 -->
+	<bean id="slaveDataSource" class="com.alibaba.druid.pool.DruidDataSource" init-method="init" destroy-method="close">
+	    <property name="driverClassName" value="${driverClassName}"/>
+	    <property name="url" value="${slaveUrl}"/>
+	    <property name="username" value="${slaveUserName}"/>
+	    <property name="password" value="${slavePassword}"/>
+	    <!--initialSize: 初始化连接-->  
+		<property name="initialSize" value="10"/>  
+		<!--minIdle: 最小空闲连接-->  
+		<property name="minIdle" value="5"/>  
+		<!--maxActive: 最大连接数量-->  
+		<property name="maxActive" value="20"/>
+		<!--最大连接等待时间(ms)-->
+		<property name="maxWait" value="1000"/>  
+		<!--默认从连接池取连接时检测其可用性，放回连接池时不做监测，-->
+		<property name="validationQuery" value="SELECT 1" /> 
+        <!-- 配置监控统计拦截的filters -->
+        <property name="filters" value="stat" /> 
+    </bean>    
+    
+    <!--动态数据源-->
+	<bean id="dynamicDataSource" class="com.szcwdhy.util.datasource.DynamicDataSource">  
+		<property name="targetDataSources">  
+			<map>
+				<entry key="main" value-ref="mainDataSource"/>	
+				<entry key="slave" value-ref="slaveDataSource"/>			    							
+			</map>  
+		</property>  
+		<property name="defaultTargetDataSource" ref="mainDataSource" />  
+	</bean> 
+	
+	<!-- 配置SQLSessionFactory -->
+	<bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+		<!--     
+	   <property name="configLocation" value="classpath:sqlMapConfig.xml"/>
+	   -->
+	   <property name="dataSource" ref="dynamicDataSource" />
+	   <property name="typeAliasesPackage" value="com.szcwdhy.model" /> 
+	   <property name="configLocation" value="classpath:Mybatis_Configuration.xml"/>
+	   <property name="mapperLocations" value="classpath:com/szcwdhy/sqlmap/*.xml" />
+	</bean> 
+	
+	<!-- 配置spring的TransactionManager，名字为默认值 -->
+	<bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource" ref="dynamicDataSource" />
+	</bean>
+	
+	
+	<!-- 开启事务控制的注解支持 -->
+	<tx:annotation-driven/>
+	
+	<context:component-scan base-package="com.szcwdhy" />
+	
+	<context:annotation-config />
+	<aop:aspectj-autoproxy proxy-target-class="true"/>
+	
+	<!--EhCache配置-->
+	<bean id="cacheManagerFactory"
+		class="org.springframework.cache.ehcache.EhCacheManagerFactoryBean"
+		p:configLocation="classpath:ehcache.xml" />
+
+	<bean id="cacheManager" class="org.springframework.cache.ehcache.EhCacheCacheManager"
+		p:cacheManager-ref="cacheManagerFactory" />
+		
+    <cache:annotation-driven cache-manager="cacheManager" />
+    
+   
+</beans>

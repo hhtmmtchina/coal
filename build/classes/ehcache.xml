@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ehcache xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:noNamespaceSchemaLocation="ehcache.xsd" updateCheck="false"
+	monitoring="autodetect">   
+	 
+	<cache name="logCache" maxElementsInMemory="10000"
+	    eternal="true" overflowToDisk="true"
+		diskSpoolBufferSizeMB="50" 
+		memoryStoreEvictionPolicy="LFU" />
+	
+
+	
+	<!--缓存路径-->
+	<diskStore path="D:/cachetmpdir"/>
+	
+	<defaultCache maxElementsInMemory="10000" eternal="false"
+		timeToIdleSeconds="120" timeToLiveSeconds="120" overflowToDisk="true"
+		maxElementsOnDisk="10000000" diskPersistent="false"
+		diskExpiryThreadIntervalSeconds="120" memoryStoreEvictionPolicy="LRU" />	
+	
+	<!--配置手动成员发现，多个成员中间用|隔开-->	
+	<cacheManagerPeerProviderFactory
+		class="net.sf.ehcache.distribution.RMICacheManagerPeerProviderFactory"
+		properties="peerDiscovery=manual,
+		rmiUrls=//localhost:40002/adPackCache|//localhost:40002/dicCache|//localhost:40002/interfaceCache" />	
+   
+    <!--配置监听成员们发向当前CacheManager的消息-->
+	<cacheManagerPeerListenerFactory
+		class="net.sf.ehcache.distribution.RMICacheManagerPeerListenerFactory"
+		properties="hostName=localhost, port=40001,
+		socketTimeoutMillis=2000"/>	 
+</ehcache>
